@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EquiTimer - Mediator Stage & Process Timer</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Lucide Icons Library -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Tone.js for Audio Chimes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            50: '#f0f4f8',
+                            100: '#d9e2ec',
+                            700: '#1b365d',
+                            800: '#102a43',
+                            900: '#0b1b2b',
+                        },
+                        bronze: {
+                            500: '#c59b27',
+                            600: '#a37c1e',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Cinzel', 'serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .timer-glow {
+            text-shadow: 0 0 25px rgba(59, 130, 246, 0.3);
+        }
+        .amber-glow {
+            text-shadow: 0 0 20px rgba(245, 158, 11, 0.25);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.3);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-full flex flex-col transition-colors duration-200">
+
+    <!-- Header Navigation Bar -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-amber-500/10 text-amber-400 rounded-lg border border-amber-500/20">
+                    <i class="fa-solid fa-scale-balanced text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-serif font-bold text-lg sm:text-xl tracking-wide text-white">EquiTimer</h1>
+                    <p class="text-xs text-slate-400 -mt-1 hidden sm:block">Professional Mediation Stage Timer</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <!-- Sound Toggle Button -->
+                <button id="soundToggleBtn" onclick="toggleSound()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 transition">
+                    <i data-lucide="volume-2" id="soundIcon" class="w-4 h-4 text-emerald-400"></i>
+                    <span id="soundText" class="hidden sm:inline">Sound On</span>
+                </button>
+
+                <!-- Session Report Button -->
+                <button onclick="openSummaryModal()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-medium transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-file-lines"></i>
+                    <span>Session Report</span>
+                </button>
+
+                <!-- Reset Button -->
+                <button onclick="confirmReset()" class="p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition" title="Reset Mediation Session">
+                    <i class="fa-solid fa-rotate-right text-base"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-7xl mx-auto w-full px-4 lg:px-8 py-6 flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- LEFT COLUMN: Primary Timers & Control Center (5 cols on lg) -->
+        <div class="lg:col-span-5 flex flex-col gap-5">
+
+            <!-- PRIMARY DISPLAY CARD: Active Stage Stopwatch (SWAPPED TO TOP) -->
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <i data-lucide="play-circle" class="w-4 h-4 text-blue-400"></i>
+                            Active Stage Stopwatch
+                        </span>
+                        <span id="activeStageBadge" class="text-xs px-2.5 py-0.5 rounded-full font-medium bg-slate-800 text-slate-400 border border-slate-700">Ready</span>
+                    </div>
+
+                    <!-- Stage Name prominently featured -->
+                    <div class="text-center py-2">
+                        <div id="activeStageName" class="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-2 truncate">
+                            Not Started
+                        </div>
+
+                        <!-- Big Active Stage Stopwatch Timer Display -->
+                        <div id="activeStageTimer" class="font-mono text-5xl sm:text-6xl font-bold tracking-tight text-blue-400 timer-glow transition-colors">
+                            00:00
+                        </div>
+                        
+                        <div id="activeStageTarget" class="text-xs text-slate-400 font-mono mt-2">
+                            Target Allocation: --:--
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Stage Progress Bar -->
+                <div class="mt-3">
+                    <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div id="stageProgressBar" class="h-full bg-blue-500 w-0 transition-all duration-500"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECONDARY CARDS: Compulsory Countdown & Total Overall Elapsed -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Compulsory 105-Min Countdown Timer -->
+                <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5 shadow-lg relative flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                                <i data-lucide="hourglass" class="w-3.5 h-3.5 text-amber-400"></i>
+                                Compulsory Countdown
+                            </span>
+                            <span id="compulsoryStatusBadge" class="text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-800 text-slate-400 border border-slate-700">105 Mins</span>
+                        </div>
+                        <div id="compulsoryTimerDisplay" class="font-mono text-3xl font-bold text-amber-400 amber-glow">
+                            105:00
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <div id="compulsorySubtext" class="text-[11px] text-slate-400">
+                            Starts at Mediator's Opening
+                        </div>
+                        <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mt-1.5">
+                            <div id="compulsoryProgressBar" class="h-full bg-amber-500 w-0 transition-all duration-500"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total Session Duration Timer -->
+                <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5 shadow-lg flex flex-col justify-between">
+                    <div>
+                        <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1">
+                            <i data-lucide="clock" class="w-3.5 h-3.5 text-emerald-400"></i>
+                            Total Overall Elapsed
+                        </div>
+                        <div id="totalTimerDisplay" class="font-mono text-3xl font-bold text-slate-200">
+                            00:00:00
+                        </div>
+                    </div>
+                    <div class="text-[11px] text-slate-400 mt-2">
+                        Includes Pre & Post stages
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timer Controls Center -->
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5 shadow-lg space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="startPauseBtn" onclick="toggleTimer()" class="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-lg transition transform active:scale-95 text-sm">
+                        <i data-lucide="play" id="startPauseIcon" class="w-4 h-4"></i>
+                        <span id="startPauseText">Start Session</span>
+                    </button>
+                    
+                    <button onclick="nextStage()" class="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl shadow-lg transition transform active:scale-95 text-sm">
+                        <i data-lucide="skip-forward" class="w-4 h-4"></i>
+                        <span>Next Stage</span>
+                    </button>
+                </div>
+
+                <div class="flex items-center justify-between pt-3 border-t border-slate-800 text-xs text-slate-400">
+                    <button onclick="prevStage()" class="hover:text-slate-200 transition flex items-center gap-1">
+                        <i data-lucide="skip-back" class="w-3.5 h-3.5"></i>
+                        <span>Previous Stage</span>
+                    </button>
+                    <button onclick="resetCurrentStage()" class="hover:text-rose-400 transition flex items-center gap-1">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                        <span>Reset Stage Time</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Optional Stage Checkboxes Box -->
+            <div class="bg-slate-900 rounded-xl p-4 border border-slate-800 text-xs space-y-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1">
+                    Optional Stage Inclusions
+                </span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <label class="flex items-center gap-2.5 p-2 rounded-lg bg-slate-950/80 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
+                        <input type="checkbox" id="toggleReading" onchange="toggleOptionalStage('reading')" class="rounded border-slate-700 text-amber-500 focus:ring-0 bg-slate-900">
+                        <div>
+                            <span class="font-medium text-slate-200 block">Pre: Reading</span>
+                            <span class="text-[10px] text-slate-400">+15 mins (Optional)</span>
+                        </div>
+                    </label>
+                    <label class="flex items-center gap-2.5 p-2 rounded-lg bg-slate-950/80 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
+                        <input type="checkbox" id="toggleDrafting" onchange="toggleOptionalStage('drafting')" class="rounded border-slate-700 text-amber-500 focus:ring-0 bg-slate-900">
+                        <div>
+                            <span class="font-medium text-slate-200 block">Post: Drafting</span>
+                            <span class="text-[10px] text-slate-400">+15 mins (Optional)</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN: Always-Visible Stage Flow Panel (7 cols on lg) -->
+        <div class="lg:col-span-7 flex flex-col bg-slate-900 rounded-2xl border border-slate-800 p-5 shadow-xl">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                <div>
+                    <h3 class="font-semibold text-base text-white flex items-center gap-2">
+                        <i data-lucide="list-checks" class="w-5 h-5 text-amber-400"></i>
+                        Mediation Process Stage Sequence
+                    </h3>
+                    <p id="completedCount" class="text-xs text-slate-400 mt-0.5">0 / 8 Stages Completed</p>
+                </div>
+                <button onclick="openAddStageModal()" class="px-3 py-1.5 text-xs font-medium text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition flex items-center gap-1.5">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>Add Custom Stage</span>
+                </button>
+            </div>
+
+            <!-- Stage List Container -->
+            <div id="stageListContainer" class="mt-4 space-y-2.5 overflow-y-auto max-h-[580px] pr-1 flex-1">
+                <!-- Stage cards injected dynamically -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer / Ownership & Licensing -->
+    <footer class="max-w-7xl mx-auto w-full px-4 lg:px-8 py-4 border-t border-slate-800/60 text-center text-xs text-slate-400 mt-auto">
+        <p class="leading-relaxed">
+            <i class="fa-solid fa-shield-halved text-amber-500/80 mr-1.5"></i>
+            <strong>Owner: Bernice Liu</strong> (<a href="mailto:wingting_liu@yahoo.com.hk" class="text-amber-400 hover:underline transition">wingting_liu@yahoo.com.hk</a>). 
+            This application is free and open for public use (non-commercial use only).
+        </p>
+    </footer>
+
+    <!-- Summary / Export Report Modal -->
+    <div id="summaryModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-800 max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-clipboard-check text-amber-400 text-xl"></i>
+                    <h3 class="font-serif font-bold text-lg text-white">Mediation Session Report</h3>
+                </div>
+                <button onclick="closeSummaryModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="my-4 overflow-y-auto flex-1 space-y-4">
+                <!-- Summary Quick Stats -->
+                <div class="grid grid-cols-3 gap-3 p-3 bg-slate-950 rounded-xl text-center text-xs border border-slate-800">
+                    <div>
+                        <span class="text-slate-400 block">Compulsory Target</span>
+                        <span id="summaryTargetMins" class="font-bold text-amber-400">105 Mins</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block">Compulsory Spent</span>
+                        <span id="summaryCompulsorySpent" class="font-bold text-slate-200">00:00:00</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block">Grand Total Elapsed</span>
+                        <span id="summaryGrandTotal" class="font-bold text-emerald-400">00:00:00</span>
+                    </div>
+                </div>
+
+                <!-- Detailed Breakdown Table -->
+                <div class="border border-slate-800 rounded-xl overflow-hidden">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-950 text-slate-300 font-semibold border-b border-slate-800">
+                            <tr>
+                                <th class="p-3">Stage Name</th>
+                                <th class="p-3 text-center">Type</th>
+                                <th class="p-3 text-right">Target</th>
+                                <th class="p-3 text-right">Elapsed</th>
+                                <th class="p-3 text-right">Variance</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summaryTableBody" class="divide-y divide-slate-800 text-slate-300">
+                            <!-- Injected dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-800 flex items-center justify-end space-x-3">
+                <button onclick="copySummaryText()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium transition flex items-center space-x-1.5">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy Text</span>
+                </button>
+                <button onclick="exportSummaryCSV()" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-medium transition flex items-center space-x-1.5 shadow-sm">
+                    <i class="fa-solid fa-file-csv"></i>
+                    <span>Export CSV</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Custom Stage Modal -->
+    <div id="addStageModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-800">
+            <h3 class="font-serif font-bold text-lg text-white mb-4">Add Custom Stage</h3>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Stage Title</label>
+                    <input type="text" id="newStageTitle" placeholder="e.g. 3rd Joint Caucus" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Target Duration (Minutes)</label>
+                    <input type="number" id="newStageDuration" min="1" max="180" value="15" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Stage Type</label>
+                    <select id="newStageType" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-amber-500">
+                        <option value="compulsory">Compulsory Session Stage</option>
+                        <option value="optional">Optional Stage</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-6 flex items-center justify-end space-x-2">
+                <button onclick="closeAddStageModal()" class="px-4 py-2 text-xs font-medium text-slate-400 hover:bg-slate-800 rounded-lg transition">Cancel</button>
+                <button onclick="saveCustomStage()" class="px-4 py-2 text-xs font-medium text-white bg-amber-600 hover:bg-amber-500 rounded-lg shadow-sm transition">Save Stage</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toastMessage" class="fixed bottom-5 right-5 bg-slate-800 border border-slate-700 text-slate-100 px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-2.5 text-xs font-medium transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+        <span id="toastText">Notification message</span>
+    </div>
+
+    <script>
+        // Default Mediation Stage Templates
+        const DEFAULT_STAGES = [
+            {
+                id: 'reading',
+                name: "Pre: Reading of Material",
+                targetMins: 15,
+                type: 'optional',
+                enabled: false,
+                elapsedSeconds: 0,
+                status: 'pending'
+            },
+            {
+                id: 'comp_1',
+                name: "1. Mediator's Opening",
+                targetMins: 7,
+                type: 'compulsory',
+                enabled: true,
+                elapsedSeconds: 0,
+                status: 'pending'
+            },
+            {
+                id: 'comp_2',
+                name: "2. Party A's Opening",
+                targetMins: 5,
+                type: 'compulsory',
+                enabled: true,
+                elapsedSeconds: 0,
+                status: 'pending'
+            },
+            {
+                id: 'comp_3',
+                name: "3. Party B's Opening",
+                targetMins: 5,
+                type: 'compulsory',
+                enabled: true,
+                elapsedSeconds: 0,
+                status: 'pending'
+            },
+            {
+                id: 'comp_4',
+                name: "4. List of Issues",
+                targetMins: 10,
+                type: 'compulsory',
+                enabled: true,
+                elapsedSeconds: 0,
+                status: 'pending'
+            },
+            {
+                id: 'comp_5',
+                name: "5. 1st Joint Meeting",
+                targetMins: 20,
+                type: 'compulsory',
+                enabled: true,
+                elapsedSeconds: 0,
+                status: 'pending'
+            },
+            {
+                id: 'comp_6',
+                name: "6. Party A Caucus",
+                targetMins: 15,
+                type: 'compulsory',
+                enabled: true,
+                elapsedSeconds: 0,
+                status: 'pending'
+            },
+            {
+                id: 'comp_7',
+                name: "7. Party B Caucus",
+                targetMins: 15,
+                type: 'compulsory',
+                enabled: true,
+                elapsedSeconds: 0,
+                status: 'pending'
+            },
+            {
+                id: 'comp_8',
+                name: "8. 2nd Joint Meeting",
+                targetMins: 25,
+                type: 'compulsory',
+                enabled: true,
+                elapsedSeconds: 0,
+                status: 'pending'
+            },
+            {
+                id: 'drafting',
+                name: "Post: Drafting Agreement",
+                targetMins: 15,
+                type: 'optional',
+                enabled: false,
+                elapsedSeconds: 0,
+                status: 'pending'
+            }
+        ];
+
+        // Core App State Variables
+        let stages = JSON.parse(JSON.stringify(DEFAULT_STAGES));
+        let activeStageIndex = -1;
+        let isRunning = false;
+        let timerInterval = null;
+        let soundEnabled = true;
+        let totalElapsedSeconds = 0;
+        let synth = null;
+
+        const COMPULSORY_TARGET_SECONDS = 105 * 60; // Fixed 105 mins
+
+        // Helper to safely render icons
+        function renderIcons() {
+            if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                try {
+                    lucide.createIcons();
+                } catch (e) {
+                    console.log("Lucide icons load error:", e);
+                }
+            }
+        }
+
+        // Initialize App on Load
+        window.addEventListener('DOMContentLoaded', () => {
+            renderIcons();
+            findNextStageIndex(0);
+            renderStageList();
+            updateTimerDisplays();
+            renderSummaryTable();
+        });
+
+        // Initialize Audio Synthesizer safely
+        function initAudio() {
+            if (!synth && typeof Tone !== 'undefined') {
+                try {
+                    synth = new Tone.Synth({
+                        oscillator: { type: 'sine' },
+                        envelope: { attack: 0.05, decay: 0.2, sustain: 0.2, release: 1 }
+                    }).toDestination();
+                } catch (e) {
+                    console.log("Audio synth initialization:", e);
+                }
+            }
+        }
+
+        function playChime(type = 'next') {
+            if (!soundEnabled) return;
+            initAudio();
+            if (typeof Tone !== 'undefined' && Tone.context && Tone.context.state !== 'running') {
+                Tone.start();
+            }
+            try {
+                if (synth) {
+                    if (type === 'next') {
+                        synth.triggerAttackRelease("E5", "8n");
+                    } else if (type === 'alert') {
+                        synth.triggerAttackRelease("A4", "4n");
+                    } else if (type === 'finish') {
+                        synth.triggerAttackRelease("C6", "2n");
+                    }
+                }
+            } catch (e) {
+                console.log("Audio chime error:", e);
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('soundIcon');
+            const text = document.getElementById('soundText');
+            if (soundEnabled) {
+                if (icon) {
+                    icon.setAttribute('data-lucide', 'volume-2');
+                    icon.className = "w-4 h-4 text-emerald-400";
+                }
+                if (text) text.innerText = "Sound On";
+            } else {
+                if (icon) {
+                    icon.setAttribute('data-lucide', 'volume-x');
+                    icon.className = "w-4 h-4 text-slate-400";
+                }
+                if (text) text.innerText = "Muted";
+            }
+            renderIcons();
+            showToast(soundEnabled ? "Audio notifications enabled" : "Audio muted");
+        }
+
+        // Calculate total elapsed seconds spent strictly in compulsory stages
+        function getCompulsoryElapsedSeconds() {
+            return stages
+                .filter(s => s.type === 'compulsory' && s.enabled)
+                .reduce((acc, s) => acc + s.elapsedSeconds, 0);
+        }
+
+        // Timer Control Logic
+        function toggleTimer() {
+            initAudio();
+            if (isRunning) {
+                pauseTimer();
+            } else {
+                startTimer();
+            }
+        }
+
+        function startTimer() {
+            const enabledStages = stages.filter(s => s.enabled);
+            if (enabledStages.length === 0) {
+                showToast("Please enable at least one stage to start.");
+                return;
+            }
+
+            if (activeStageIndex === -1 || activeStageIndex >= stages.length || !stages[activeStageIndex].enabled) {
+                findNextStageIndex(0);
+            }
+
+            if (activeStageIndex === -1) {
+                showToast("All enabled stages completed!");
+                return;
+            }
+
+            isRunning = true;
+            stages[activeStageIndex].status = 'active';
+
+            const startBtn = document.getElementById('startPauseBtn');
+            if (startBtn) {
+                startBtn.className = "col-span-2 sm:col-span-1 flex items-center justify-center gap-2 py-3 px-4 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-xl shadow-lg transition transform active:scale-95 text-sm";
+                document.getElementById('startPauseText').innerText = "Pause Session";
+                document.getElementById('startPauseIcon').setAttribute('data-lucide', 'pause');
+            }
+
+            renderIcons();
+            timerInterval = setInterval(tick, 1000);
+            renderStageList();
+            updateTimerDisplays();
+            showToast(`Started: ${stages[activeStageIndex].name}`);
+        }
+
+        function pauseTimer() {
+            isRunning = false;
+            clearInterval(timerInterval);
+
+            const startBtn = document.getElementById('startPauseBtn');
+            if (startBtn) {
+                startBtn.className = "col-span-2 sm:col-span-1 flex items-center justify-center gap-2 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-lg transition transform active:scale-95 text-sm";
+                document.getElementById('startPauseText').innerText = "Resume Session";
+                document.getElementById('startPauseIcon').setAttribute('data-lucide', 'play');
+            }
+
+            renderIcons();
+            updateTimerDisplays();
+        }
+
+        function tick() {
+            if (activeStageIndex === -1 || !stages[activeStageIndex]) return;
+
+            const currentStage = stages[activeStageIndex];
+            currentStage.elapsedSeconds++;
+            totalElapsedSeconds++;
+
+            // Individual stage target alert check
+            const stageTargetSecs = currentStage.targetMins * 60;
+            if (currentStage.elapsedSeconds === stageTargetSecs) {
+                playChime('alert');
+                showToast(`Stage "${currentStage.name}" reached target time!`);
+            }
+
+            // Compulsory 105-Min session countdown target check
+            const compulsoryElapsed = getCompulsoryElapsedSeconds();
+            if (compulsoryElapsed === COMPULSORY_TARGET_SECONDS) {
+                playChime('finish');
+                showToast(`Compulsory session target (105 Mins) reached!`);
+            }
+
+            updateTimerDisplays();
+            renderSummaryTable();
+        }
+
+        function nextStage() {
+            if (activeStageIndex === -1) return;
+
+            playChime('next');
+            stages[activeStageIndex].status = 'completed';
+
+            const nextIdx = findNextEnabledIndex(activeStageIndex + 1);
+            if (nextIdx !== -1) {
+                activeStageIndex = nextIdx;
+                stages[activeStageIndex].status = isRunning ? 'active' : 'pending';
+                showToast(`Advanced to: ${stages[activeStageIndex].name}`);
+            } else {
+                pauseTimer();
+                activeStageIndex = -1;
+                playChime('finish');
+                showToast("All mediation stages finished!");
+            }
+
+            renderStageList();
+            updateTimerDisplays();
+            renderSummaryTable();
+        }
+
+        function prevStage() {
+            const prevIdx = findPrevEnabledIndex(activeStageIndex - 1);
+            if (prevIdx !== -1) {
+                if (activeStageIndex !== -1 && stages[activeStageIndex]) {
+                    stages[activeStageIndex].status = 'pending';
+                }
+                activeStageIndex = prevIdx;
+                stages[activeStageIndex].status = isRunning ? 'active' : 'pending';
+                renderStageList();
+                updateTimerDisplays();
+                showToast(`Reverted to: ${stages[activeStageIndex].name}`);
+            } else {
+                showToast("Already at the first stage.");
+            }
+        }
+
+        function resetCurrentStage() {
+            if (activeStageIndex !== -1 && stages[activeStageIndex]) {
+                const resetSec = stages[activeStageIndex].elapsedSeconds;
+                stages[activeStageIndex].elapsedSeconds = 0;
+                totalElapsedSeconds = Math.max(0, totalElapsedSeconds - resetSec);
+                updateTimerDisplays();
+                renderStageList();
+                showToast(`Reset stage time for: ${stages[activeStageIndex].name}`);
+            }
+        }
+
+        function findNextEnabledIndex(startIndex) {
+            for (let i = startIndex; i < stages.length; i++) {
+                if (stages[i].enabled) return i;
+            }
+            return -1;
+        }
+
+        function findPrevEnabledIndex(startIndex) {
+            for (let i = startIndex; i >= 0; i--) {
+                if (stages[i].enabled) return i;
+            }
+            return -1;
+        }
+
+        function findNextStageIndex(from) {
+            const idx = findNextEnabledIndex(from);
+            if (idx !== -1) activeStageIndex = idx;
+        }
+
+        function updateTimerDisplays() {
+            // --- 1. ACTIVE STAGE STOPWATCH DISPLAY (PRIMARY) ---
+            const activeBadge = document.getElementById('activeStageBadge');
+            const activeName = document.getElementById('activeStageName');
+            const activeTimer = document.getElementById('activeStageTimer');
+            const activeTarget = document.getElementById('activeStageTarget');
+            const stageProgressBar = document.getElementById('stageProgressBar');
+
+            if (activeStageIndex !== -1 && stages[activeStageIndex]) {
+                const cur = stages[activeStageIndex];
+                activeName.innerText = cur.name;
+                activeName.className = "text-2xl sm:text-3xl font-bold text-white tracking-tight mb-2 truncate";
+                activeTimer.innerText = formatMMSS(cur.elapsedSeconds);
+                activeTarget.innerText = `Target Allocation: ${cur.targetMins}:00`;
+
+                const targetSecs = cur.targetMins * 60;
+                const stagePct = targetSecs > 0 ? Math.min(100, (cur.elapsedSeconds / targetSecs) * 100) : 0;
+                stageProgressBar.style.width = `${stagePct}%`;
+
+                if (cur.elapsedSeconds > targetSecs) {
+                    activeTimer.className = "font-mono text-5xl sm:text-6xl font-bold tracking-tight text-rose-500 animate-pulse timer-glow transition-colors";
+                    stageProgressBar.className = "h-full bg-rose-500 transition-all duration-500";
+                    if (activeBadge) {
+                        activeBadge.innerText = "Overtime";
+                        activeBadge.className = "text-xs px-2.5 py-0.5 rounded-full font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20";
+                    }
+                } else {
+                    activeTimer.className = "font-mono text-5xl sm:text-6xl font-bold tracking-tight text-blue-400 timer-glow transition-colors";
+                    stageProgressBar.className = "h-full bg-blue-500 transition-all duration-500";
+                    if (activeBadge) {
+                        activeBadge.innerText = isRunning ? "Running" : "Paused";
+                        activeBadge.className = isRunning ? 
+                            "text-xs px-2.5 py-0.5 rounded-full font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20" : 
+                            "text-xs px-2.5 py-0.5 rounded-full font-medium bg-slate-800 text-slate-400 border border-slate-700";
+                    }
+                }
+            } else {
+                activeName.innerText = "Session Completed";
+                activeName.className = "text-2xl sm:text-3xl font-bold text-slate-400 tracking-tight mb-2 truncate";
+                activeTimer.innerText = "00:00";
+                activeTarget.innerText = "Target Allocation: --:--";
+                stageProgressBar.style.width = `100%`;
+                stageProgressBar.className = "h-full bg-emerald-500 transition-all duration-500";
+                if (activeBadge) {
+                    activeBadge.innerText = "Finished";
+                    activeBadge.className = "text-xs px-2.5 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                }
+            }
+
+            // --- 2. COMPULSORY 105-MIN COUNTDOWN DISPLAY ---
+            const compulsoryElapsed = getCompulsoryElapsedSeconds();
+            const compulsoryRemaining = COMPULSORY_TARGET_SECONDS - compulsoryElapsed;
+            const isCompulsoryOvertime = compulsoryRemaining < 0;
+            const absCompSecs = Math.abs(compulsoryRemaining);
+
+            const compMinutes = Math.floor(absCompSecs / 60);
+            const compSeconds = absCompSecs % 60;
+            const formattedCompTime = `${isCompulsoryOvertime ? '+' : ''}${String(compMinutes).padStart(2, '0')}:${String(compSeconds).padStart(2, '0')}`;
+
+            const compDisplayElem = document.getElementById('compulsoryTimerDisplay');
+            const compSubtext = document.getElementById('compulsorySubtext');
+            const compBadge = document.getElementById('compulsoryStatusBadge');
+            const compBar = document.getElementById('compulsoryProgressBar');
+
+            compDisplayElem.innerText = formattedCompTime;
+
+            const isCurrentCompulsory = activeStageIndex !== -1 && stages[activeStageIndex] && stages[activeStageIndex].type === 'compulsory';
+
+            if (isCompulsoryOvertime) {
+                compDisplayElem.className = "font-mono text-3xl font-bold text-rose-500 animate-pulse";
+                compSubtext.innerText = "OVERTIME: 105-Min Target Exceeded";
+                compSubtext.className = "text-[11px] text-rose-400 font-medium";
+                compBadge.innerText = "Overtime";
+                compBadge.className = "text-[10px] px-2 py-0.5 rounded-full font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20";
+                compBar.className = "h-full bg-rose-500 transition-all duration-500";
+            } else if (isCurrentCompulsory) {
+                compDisplayElem.className = "font-mono text-3xl font-bold text-amber-400 amber-glow";
+                compSubtext.innerText = "105-Min Countdown Active";
+                compSubtext.className = "text-[11px] text-amber-400 font-medium";
+                compBadge.innerText = isRunning ? "Active" : "Paused";
+                compBadge.className = "text-[10px] px-2 py-0.5 rounded-full font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20";
+                compBar.className = "h-full bg-amber-500 transition-all duration-500";
+            } else {
+                compDisplayElem.className = "font-mono text-3xl font-bold text-amber-400/80";
+                if (compulsoryElapsed === 0) {
+                    compSubtext.innerText = "Starts at Mediator's Opening";
+                    compBadge.innerText = "Ready";
+                } else if (compulsoryElapsed >= COMPULSORY_TARGET_SECONDS) {
+                    compSubtext.innerText = "105-Min Target Reached";
+                    compBadge.innerText = "Completed";
+                } else {
+                    compSubtext.innerText = "Paused (Optional Stage)";
+                    compBadge.innerText = "Standby";
+                }
+                compSubtext.className = "text-[11px] text-slate-400";
+                compBadge.className = "text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-800 text-slate-400 border border-slate-700";
+                compBar.className = "h-full bg-amber-500 transition-all duration-500";
+            }
+
+            const compPct = Math.min(100, (compulsoryElapsed / COMPULSORY_TARGET_SECONDS) * 100);
+            compBar.style.width = `${compPct}%`;
+
+            // --- 3. TOTAL OVERALL ELAPSED DISPLAY ---
+            document.getElementById('totalTimerDisplay').innerText = formatHHMMSS(totalElapsedSeconds);
+        }
+
+        function toggleOptionalStage(type) {
+            let stage = stages.find(s => s.id === type);
+            if (stage) {
+                stage.enabled = !stage.enabled;
+                
+                const cb = document.getElementById(type === 'reading' ? 'toggleReading' : 'toggleDrafting');
+                if (cb) cb.checked = stage.enabled;
+
+                if (!isRunning) {
+                    if (activeStageIndex !== -1 && stages[activeStageIndex]) {
+                        stages[activeStageIndex].status = 'pending';
+                    }
+                    findNextStageIndex(0);
+                }
+
+                renderStageList();
+                updateTimerDisplays();
+                renderSummaryTable();
+                showToast(`${stage.name} ${stage.enabled ? 'Enabled (+15m)' : 'Disabled'}`);
+            }
+        }
+
+        function renderStageList() {
+            const container = document.getElementById('stageListContainer');
+            if (!container) return;
+            container.innerHTML = '';
+
+            let completedCount = 0;
+            let totalEnabledStages = 0;
+
+            stages.forEach((stage, idx) => {
+                if (!stage.enabled) return;
+
+                totalEnabledStages++;
+                if (stage.status === 'completed') completedCount++;
+
+                const card = document.createElement('div');
+                let statusClass = "p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between transition cursor-pointer hover:border-slate-700";
+                
+                if (idx === activeStageIndex) {
+                    statusClass = "p-3.5 rounded-xl border border-blue-500/60 bg-slate-800/90 flex items-center justify-between transition ring-1 ring-blue-500/30 shadow-md";
+                } else if (stage.status === 'completed') {
+                    statusClass = "p-3.5 rounded-xl border border-slate-800/80 bg-slate-950/30 flex items-center justify-between transition opacity-75 hover:opacity-100";
+                }
+
+                const variance = stage.elapsedSeconds - (stage.targetMins * 60);
+                let varianceBadge = '';
+                if (stage.status === 'completed' || stage.elapsedSeconds > 0) {
+                    const varMins = Math.round(variance / 60);
+                    if (varMins > 0) {
+                        varianceBadge = `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">+${varMins}m</span>`;
+                    } else if (varMins < 0) {
+                        varianceBadge = `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">${varMins}m</span>`;
+                    } else {
+                        varianceBadge = `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">On Target</span>`;
+                    }
+                }
+
+                card.className = statusClass;
+                card.innerHTML = `
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
+                            stage.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                            idx === activeStageIndex ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-slate-800 text-slate-500'
+                        }">
+                            ${stage.status === 'completed' ? '✓' : (idx + 1)}
+                        </div>
+                        <div class="truncate">
+                            <div class="text-xs font-semibold text-slate-200 flex items-center gap-2">
+                                <span class="truncate">${stage.name}</span>
+                                ${stage.type === 'optional' ? '<span class="text-[9px] uppercase px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">Optional</span>' : ''}
+                            </div>
+                            <div class="text-[11px] text-slate-400 font-mono mt-0.5 flex items-center gap-2">
+                                <span>Target: ${stage.targetMins}m</span>
+                                ${stage.elapsedSeconds > 0 ? `<span class="text-slate-300">• Spent: ${formatMMSS(stage.elapsedSeconds)}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        ${varianceBadge}
+                        ${idx === activeStageIndex ? '<span class="flex h-2 w-2 relative"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span></span>' : ''}
+                    </div>
+                `;
+
+                card.onclick = () => {
+                    if (!isRunning) {
+                        if (activeStageIndex !== -1 && stages[activeStageIndex]) {
+                            stages[activeStageIndex].status = 'pending';
+                        }
+                        activeStageIndex = idx;
+                        stages[activeStageIndex].status = 'pending';
+                        renderStageList();
+                        updateTimerDisplays();
+                    }
+                };
+
+                container.appendChild(card);
+            });
+
+            document.getElementById('completedCount').innerText = `${completedCount} / ${totalEnabledStages} Stages Completed`;
+        }
+
+        function renderSummaryTable() {
+            const tbody = document.getElementById('summaryTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            stages.forEach((s) => {
+                if (!s.enabled) return;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/40 transition";
+
+                const diffSecs = s.elapsedSeconds - (s.targetMins * 60);
+                const diffMins = (diffSecs / 60).toFixed(1);
+                let diffText = `${diffMins > 0 ? '+' : ''}${diffMins}m`;
+                let diffColor = "text-slate-400";
+
+                if (s.elapsedSeconds > 0) {
+                    if (diffSecs > 60) diffColor = "text-rose-400 font-medium";
+                    else if (diffSecs < -60) diffColor = "text-emerald-400 font-medium";
+                } else {
+                    diffText = "--";
+                }
+
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 font-medium text-slate-200 truncate max-w-[160px]">${s.name}</td>
+                    <td class="py-2.5 px-3 text-center">
+                        <span class="text-[9px] uppercase px-1.5 py-0.5 rounded ${s.type === 'optional' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}">
+                            ${s.type}
+                        </span>
+                    </td>
+                    <td class="py-2.5 px-3 text-right text-slate-400">${s.targetMins}:00</td>
+                    <td class="py-2.5 px-3 text-right font-bold ${s.elapsedSeconds > 0 ? 'text-blue-400' : 'text-slate-500'}">${formatMMSS(s.elapsedSeconds)}</td>
+                    <td class="py-2.5 px-3 text-right ${diffColor}">${diffText}</td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openSummaryModal() {
+            document.getElementById('summaryTargetMins').innerText = `105 Mins`;
+            
+            const compulsorySpent = getCompulsoryElapsedSeconds();
+
+            document.getElementById('summaryCompulsorySpent').innerText = formatHHMMSS(compulsorySpent);
+            document.getElementById('summaryGrandTotal').innerText = formatHHMMSS(totalElapsedSeconds);
+
+            renderSummaryTable();
+            document.getElementById('summaryModal').classList.remove('hidden');
+        }
+
+        function closeSummaryModal() {
+            document.getElementById('summaryModal').classList.add('hidden');
+        }
+
+        function copySummaryText() {
+            let summaryStr = `=== MEDIATOR'S SESSION SUMMARY REPORT ===\n`;
+            summaryStr += `Date: ${new Date().toLocaleDateString()}\n`;
+            summaryStr += `Total Session Duration: ${formatHHMMSS(totalElapsedSeconds)}\n`;
+            summaryStr += `Compulsory Session Target: 105:00 Mins\n`;
+            summaryStr += `Compulsory Session Spent: ${formatHHMMSS(getCompulsoryElapsedSeconds())}\n\n`;
+            summaryStr += `STAGE BREAKDOWN:\n`;
+
+            stages.filter(s => s.enabled).forEach(s => {
+                const diffSecs = s.elapsedSeconds - (s.targetMins * 60);
+                const diffMins = (diffSecs / 60).toFixed(1);
+                summaryStr += `- ${s.name} [${s.type.toUpperCase()}]: Target ${s.targetMins}m | Actual ${formatMMSS(s.elapsedSeconds)} | Var ${diffMins}m\n`;
+            });
+
+            const textArea = document.createElement("textarea");
+            textArea.value = summaryStr;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast("Summary copied to clipboard!");
+            } catch (err) {
+                showToast("Failed to copy summary.");
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function exportSummaryCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,Stage Name,Type,Target (Mins),Elapsed Time,Status\n";
+
+            stages.filter(s => s.enabled).forEach(s => {
+                csvContent += `"${s.name}",${s.type},${s.targetMins},"${formatMMSS(s.elapsedSeconds)}",${s.status}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', `mediation_summary_${Date.now()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast('CSV downloaded successfully');
+        }
+
+        // Custom Stage Modal
+        function openAddStageModal() {
+            document.getElementById('addStageModal').classList.remove('hidden');
+        }
+
+        function closeAddStageModal() {
+            document.getElementById('addStageModal').classList.add('hidden');
+        }
+
+        function saveCustomStage() {
+            const titleInput = document.getElementById('newStageTitle').value.trim();
+            const durationInput = parseInt(document.getElementById('newStageDuration').value, 10);
+            const typeInput = document.getElementById('newStageType').value;
+
+            if (!titleInput || isNaN(durationInput) || durationInput <= 0) {
+                alert('Please enter a valid stage title and duration.');
+                return;
+            }
+
+            const newStage = {
+                id: 'custom-' + Date.now(),
+                name: titleInput,
+                targetMins: durationInput,
+                type: typeInput,
+                enabled: true,
+                elapsedSeconds: 0,
+                status: 'pending'
+            };
+
+            const draftingIdx = stages.findIndex(s => s.id === 'drafting');
+            if (draftingIdx !== -1) {
+                stages.splice(draftingIdx, 0, newStage);
+            } else {
+                stages.push(newStage);
+            }
+
+            closeAddStageModal();
+            renderStageList();
+            updateTimerDisplays();
+            showToast(`Added custom stage: "${titleInput}"`);
+
+            document.getElementById('newStageTitle').value = '';
+        }
+
+        function confirmReset() {
+            if (confirm("Are you sure you want to reset all stage timers and session duration?")) {
+                pauseTimer();
+                stages = JSON.parse(JSON.stringify(DEFAULT_STAGES));
+                totalElapsedSeconds = 0;
+                activeStageIndex = -1;
+                findNextStageIndex(0);
+
+                const toggleReading = document.getElementById('toggleReading');
+                const toggleDrafting = document.getElementById('toggleDrafting');
+                if (toggleReading) toggleReading.checked = false;
+                if (toggleDrafting) toggleDrafting.checked = false;
+
+                renderStageList();
+                updateTimerDisplays();
+                renderSummaryTable();
+                showToast("Session reset to initial state.");
+            }
+        }
+
+        function formatMMSS(totalSeconds) {
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function formatHHMMSS(totalSeconds) {
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toastMessage');
+            const toastText = document.getElementById('toastText');
+            if (toastText) toastText.innerText = message;
+
+            if (toast) {
+                toast.classList.remove('translate-y-20', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+
+                setTimeout(() => {
+                    toast.classList.remove('translate-y-0', 'opacity-100');
+                    toast.classList.add('translate-y-20', 'opacity-0');
+                }, 2500);
+            }
+        }
+    </script>
+</body>
+</html>
